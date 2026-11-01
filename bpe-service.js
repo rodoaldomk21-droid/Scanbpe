@@ -1,7 +1,7 @@
 // Camada independente de consulta (ETAPA 2: SVRS).
 const BPeService = (() => {
   // Cole aqui o endereço do seu Worker (Cloudflare), ex.: https://bpe-proxy.seunome.workers.dev
-  const PROXY_URL = 'https://bpe-proxy.rodoaldomk21.workers.dev';
+  const PROXY_URL = '';
   const ALLOWED_DOMAINS = ['dfe-portal.svrs.rs.gov.br'];
   const NA = 'INFORMAÇÃO NÃO DISPONÍVEL NA CONSULTA PÚBLICA';
 
@@ -33,7 +33,33 @@ const BPeService = (() => {
   }
   const after = (lines, label) => { const i = lines.findIndex(l => new RegExp('^'+label+':?$','i').test(l)); return i>=0 ? (lines[i+1]||'') : ''; };
 
-  function parse(html, v) {
+  const fdt = iso => { const m=(iso||'').match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2}(?::\d{2})?)/); return m?{d:`${m[3]}/${m[2]}/${m[1]}`,t:m[4]}:{d:'',t:''}; };
+  function parseXml(html, v) {
+    const x = new DOMParser().parseFromString(html, 'text/xml');
+    const g = (tag, ctx) => { const e=(ctx||x).getElementsByTagNameNS('*',tag)[0]; return e?e.textContent.trim():''; };
+    const r = empty(v.url); r.documento.chave=v.chave; r.documento.numero=g('nBP'); r.documento.serie=g('serie');
+    const pa = x.getElementsByTagNameNS('*','infPassagem')[0];
+    if (pa) r.passageiro.nome = g('xNome', pa);
+    r.viagem.origem=g('xLocOrig'); r.viagem.destino=g('xLocDest'); r.viagem.poltrona=g('poltrona'); r.viagem.linha=g('xPercurso');
+    const dv=fdt(g('dhViagem')); r.viagem.data=dv.d; r.viagem.horario=dv.t.slice(0,5);
+    const cs=g('cStat', x.getElementsByTagNameNS('*','infProt')[0]);
+    const map={'100':'AUTORIZADO','101':'CANCELADO','110':'DENEGADO'};
+    r.fiscal.status = map[cs] || 'STATUS NÃO IDENTIFICADO';
+    if (map[cs]) { r.fiscal.autorizado = cs==='100'; r.fiscal.cancelado = cs==='101'; }
+    [...x.getElementsByTagNameNS('*','infEvento')].forEach(e => {
+      const d=fdt(g('dhRegEvento',e));
+      r.eventos.push({tipo:g('descEvento',e).toUpperCase(), descricao:g('descEvento',e), data:d.d?`${d.d} às ${d.t}`:'', status:g('nProt',e)?`Protocolo ${g('nProt',e)}`:''});
+    });
+    r.consulta.sucesso = !!(r.viagem.origem || r.documento.numero);
+    return r;
+  }
+
+  function parse(html, v, j) {
+    j = j || {};
+    const diag = `HTTP ${j.status} | ${j.ct} | ${j.len} bytes | ` + (html||'').replace(/\s+/g,' ').slice(0,300);
+    if (/<\?xml|<bpeProc|<BPe[ >]/i.test((html||'').slice(0,3000))) {
+      const rx = parseXml(html, v); rx.consulta.diag = diag; if (!rx.consulta.sucesso) rx.consulta.mensagem='Dados não encontrados na resposta.'; return rx;
+    }
     const lines = toLines(html), flat = lines.join(' ');
     const r = empty(v.url);
     r.documento.chave = v.chave;
@@ -51,15 +77,18 @@ const BPeService = (() => {
     if (dt) { r.viagem.data = dt[1]; r.viagem.horario = dt[2]; }
     const pol = flat.match(/Poltrona:?\s*(\w+)/i); if (pol) r.viagem.poltrona = pol[1];
     r.viagem.servico = after(lines,'Tipo'); r.viagem.linha = after(lines,'Linha');
-    const pas = lines.find(l => /^Passageiro:?\s*\S/i.test(l)); if (pas) r.passageiro.nome = pas.replace(/^Passageiro:?\s*/i,'');
+    const pas = lines.find(l => /^Passageiro:?\s*\S/i.test(l) && !/RG$/i.test(l)); if (pas) r.passageiro.nome = pas.replace(/^Passageiro:?\s*/i,'');
+    if (!r.passageiro.nome) { const i=lines.findIndex(l=>/^Passageiro:?\s*RG/i.test(l)); const n=i>=0?lines.slice(i,i+4).find(l=>/^- \S/.test(l)):''; if (n) r.passageiro.nome=n.replace(/^- /,''); }
 
     const st = flat.match(/Situa[çc][ãa]o[^A-Za-z]{0,8}(AUTORIZAD|CANCELAD|DENEGAD|REJEITAD)/i);
     if (st) {
       const k = st[1].toUpperCase(); r.fiscal.status = k + 'O';
       r.fiscal.autorizado = k==='AUTORIZAD'; r.fiscal.cancelado = k==='CANCELAD';
+    } else if (/Protocolo de Autoriza[çc][ãa]o:?\s*\d+/i.test(flat) && !r.eventos.some(e=>/CANCEL/i.test(e.tipo)) && !/cancelad/i.test(flat)) {
+      r.fiscal.status='AUTORIZADO'; r.fiscal.autorizado=true; r.fiscal.cancelado=false;
     } else r.fiscal.status = 'STATUS NÃO IDENTIFICADO';
 
-    r.consulta.sucesso = !!(r.viagem.origem || r.eventos.length);
+    r.consulta.diag = diag; r.consulta.sucesso = !!(r.viagem.origem || r.eventos.length);
     if (!r.consulta.sucesso) r.consulta.mensagem = 'Dados não encontrados na página consultada.';
     return r;
   }
@@ -70,7 +99,7 @@ const BPeService = (() => {
     const j = await res.json();
     if (j.captcha) return Object.assign(empty(v.url,'A consulta automatizada foi bloqueada (CAPTCHA/proteção). Use "Abrir consulta oficial".'),{_erro:true});
     if (!j.ok) throw new Error('PAGINA_FORA');
-    return parse(j.html, v);
+    return parse(j.html, v, j);
   }
 
   async function consultar(raw) {

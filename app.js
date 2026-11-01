@@ -71,6 +71,7 @@ async function run(raw){
   show('home'); msg('Consultando…', true);
   const r = await BPeService.consultar(raw);
   if(r._erro){ show('home'); msg(r.consulta.mensagem); return; }
+  if(!r.consulta.sucesso){ show('home'); msg((r.consulta.mensagem||'Sem dados.')+'\n\nDiagnóstico: '+(r.consulta.diag||'')); return; }
   lastUrl = BPeService.validateUrl(raw).url; last=r; addH(r, lastUrl); render(r);
 }
 
