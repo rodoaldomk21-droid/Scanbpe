@@ -121,7 +121,13 @@ const BPeService = (() => {
     if (!r.passageiro.nome) { const i=lines.findIndex(l=>/^Passageiro:?\s*RG/i.test(l)); const n=i>=0?lines.slice(i,i+4).find(l=>/^- \S/.test(l)):''; if (n) r.passageiro.nome=n.replace(/^- /,''); }
 
     const st = flat.match(/Situa[çc][ãa]o[^A-Za-z]{0,8}(AUTORIZAD|CANCELAD|DENEGAD|REJEITAD)/i);
-    const cm = html.match(/cancelado pelo emitente|bilhete cancelado|BPe cancelado|uso denegado|bilhete denegado/i);
+    let cm = html.match(/cancelado pelo emitente|bilhete cancelado|BPe cancelado|uso denegado|bilhete denegado/i);
+    // Carimbo "INVÁLIDO" da consulta oficial é uma imagem (cancelado.png), não texto.
+    const vis = t => !!t && !/display\s*:\s*none|hidden/i.test(t);
+    const imC = (html.match(/<img[^>]*(?:imagem-cancelado|cancelado\.png|imgInvalido)[^>]*>/i) || [])[0];
+    const imD = (html.match(/<img[^>]*denegad[^>]*>/i) || [])[0];
+    if (!cm && vis(imC)) cm = ['bilhete cancelado pelo emitente'];
+    else if (!cm && vis(imD)) cm = ['bilhete denegado'];
     if (cm) {
       const den = /denegad/i.test(cm[0]);
       r.fiscal.status = den ? 'DENEGADO' : 'CANCELADO'; r.fiscal.autorizado = false; r.fiscal.cancelado = !den; r.fiscal.motivo = cm[0].charAt(0).toUpperCase() + cm[0].slice(1);
