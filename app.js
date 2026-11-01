@@ -4,7 +4,7 @@ const KEY = 'bpe_hist_v1';
 let reader = null, last = null, lastUrl = '';
 
 function show(id){ views.forEach(v => $('#'+v).hidden = v !== id); if(id!=='home') hideMsg(); }
-function hideMsg(){ $('#msg').hidden = true; }
+function hideMsg(){ $('#msg').hidden = true; const b=$('#btnDiag'); if(b) b.hidden=true; }
 function msg(t, info){ const m=$('#msg'); m.textContent=t; m.className='msg'+(info?' info':''); m.hidden=false; }
 function el(tag, cls, text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!==undefined) e.textContent=text; return e; }
 function field(label, value){ const d=el('div','f'); d.append(el('span','',label), el('strong','',value||'—')); return d; }
@@ -71,9 +71,11 @@ async function run(raw){
   show('home'); msg('Consultando…', true);
   const r = await BPeService.consultar(raw);
   if(r._erro){ show('home'); msg(r.consulta.mensagem); return; }
-  if(!r.consulta.sucesso){ show('home'); msg((r.consulta.mensagem||'Sem dados.')+'\n\nDiagnóstico: '+(r.consulta.diag||'')); return; }
+  if(!r.consulta.sucesso){ show('home'); msg((r.consulta.mensagem||'Sem dados.')+'\n\nDiagnóstico: '+(r.consulta.diag||'')); dbtn(r.consulta.diag||''); return; }
   lastUrl = BPeService.validateUrl(raw).url; last=r; addH(r, lastUrl); render(r);
 }
+
+function dbtn(t){ let b=$('#btnDiag'); if(!b){ b=el('button','btn'); b.id='btnDiag'; $('#msg').after(b); } b.textContent='COPIAR DIAGNÓSTICO'; b.hidden=false; b.onclick=()=>navigator.clipboard.writeText(t).then(()=>{b.textContent='Copiado! Cole na conversa';}); }
 
 // Câmera / ZXing
 async function startScan(){

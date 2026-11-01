@@ -1,7 +1,7 @@
 // Camada independente de consulta (ETAPA 2: SVRS).
 const BPeService = (() => {
   // Cole aqui o endereço do seu Worker (Cloudflare), ex.: https://bpe-proxy.seunome.workers.dev
-  const PROXY_URL = 'https://bpe-proxy.rodoaldomk21.workers.dev';
+  const PROXY_URL = '';
   const ALLOWED_DOMAINS = ['dfe-portal.svrs.rs.gov.br'];
   const NA = 'INFORMAÇÃO NÃO DISPONÍVEL NA CONSULTA PÚBLICA';
 
@@ -56,7 +56,7 @@ const BPeService = (() => {
 
   function parse(html, v, j) {
     j = j || {};
-    const diag = `HTTP ${j.status} | ${j.ct} | ${j.len} bytes | ` + (html||'').replace(/\s+/g,' ').slice(0,300);
+    const diag = `HTTP ${j.status} | ${j.ct} | ${j.len} bytes | ` + (html||'').replace(/\s+/g,' ').slice(0,3000);
     if (/<\?xml|<bpeProc|<BPe[ >]/i.test((html||'').slice(0,3000))) {
       const rx = parseXml(html, v); rx.consulta.diag = diag; if (!rx.consulta.sucesso) rx.consulta.mensagem='Dados não encontrados na resposta.'; return rx;
     }
