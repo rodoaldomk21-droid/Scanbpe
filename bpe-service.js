@@ -128,7 +128,7 @@ const BPeService = (() => {
       r.fiscal.status='AUTORIZADO'; r.fiscal.autorizado=true; r.fiscal.cancelado=false;
     } else r.fiscal.status = 'STATUS NÃO IDENTIFICADO';
 
-    r.consulta.diag = diag; r.consulta.sucesso = !!(r.viagem.origem || r.eventos.length);
+    r.fiscal.protocolo = (flat.match(/Protocolo de Autoriza[çc][ãa]o:?\s*(\d+)/i)||[])[1] || ''; r.consulta.diag = diag; r.consulta.sucesso = !!(r.viagem.origem || r.eventos.length);
     if (!r.consulta.sucesso) r.consulta.mensagem = 'Dados não encontrados na página consultada.';
     return r;
   }

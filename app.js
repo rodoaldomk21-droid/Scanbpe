@@ -44,9 +44,12 @@ function render(r){
   c.append(top);
 
   const nb = r.eventos.find(e=>/N[ÃA]O EMBARQUE/i.test(e.tipo)), ev = nb || r.eventos[0];
-  const box=el('div','event '+(ev?'hit':'na'));
-  box.append(el('small','','EVENTO IDENTIFICADO'));
+  const okSt = r.fiscal.status==='AUTORIZADO', badSt = /CANCELAD|DENEGAD|REJEITAD/.test(r.fiscal.status);
+  const box=el('div','event '+(ev?'hit':okSt?'ok':badSt?'hit':'na'));
+  box.append(el('small','', !ev && (okSt||badSt) ? 'STATUS DO BILHETE' : 'EVENTO IDENTIFICADO'));
   if(ev){ box.append(el('b','',ev.tipo)); if(ev.data) box.append(el('small','',ev.data)); if(ev.chave) box.append(el('small','','Chave: '+ev.chave)); }
+  else if(okSt){ box.append(el('b','','EMITIDO'), el('small','','Nenhum evento registrado na consulta pública')); }
+  else if(badSt){ box.append(el('b','',r.fiscal.status)); }
   else box.append(el('b','',BPeService.NA));
   r.eventos.filter(e=>e!==ev).forEach(e=>box.append(el('small','',e.tipo+' · '+e.data)));
   if(ev && !nb) box.append(el('small','','Não embarque: '+BPeService.NA));
@@ -58,8 +61,8 @@ function render(r){
   g.append(field('Data da viagem',r.viagem.data), field('Horário',r.viagem.horario), field('Poltrona',r.viagem.poltrona), field('Tipo de serviço',r.viagem.servico));
   if(r.viagem.linha) c.append(field('Linha', r.viagem.linha));
   c.append(g);
-  c.append(field('Status do documento', r.fiscal.status));
-  c.append(field('Protocolo do evento', ev ? (ev.status||'Conforme retorno da consulta') : '—'));
+  const fs=field('Status do documento', r.fiscal.status); if(okSt) fs.classList.add('st-ok'); c.append(fs);
+  c.append(ev ? field('Protocolo do evento', ev.status||'Conforme retorno da consulta') : r.fiscal.protocolo ? field('Protocolo de autorização', r.fiscal.protocolo) : field('Protocolo do evento','—'));
   c.append(el('p','note', r.consulta.demo ? 'Dados fictícios, apenas para visualizar o layout.' : 'Somente informações efetivamente disponíveis na consulta pública. Autorização do BPe não confirma embarque.'));
   if(r.consulta.texto && (r.fiscal.status==='STATUS NÃO IDENTIFICADO' || !r.consulta.sucesso || !r.eventos.length)){
     const b=el('button','btn','COPIAR TEXTO LIDO (PARA AJUSTE)'); b.onclick=()=>navigator.clipboard.writeText(r.consulta.texto).then(()=>{b.textContent='Copiado';}); c.append(b);
