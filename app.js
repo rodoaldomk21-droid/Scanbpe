@@ -54,10 +54,14 @@ function render(r){
   c.append(field('Origem', r.viagem.origem), el('div','arrow','↓'), field('Destino', r.viagem.destino));
   const g=el('div','grid');
   g.append(field('Data da viagem',r.viagem.data), field('Horário',r.viagem.horario), field('Poltrona',r.viagem.poltrona), field('Tipo de serviço',r.viagem.servico));
+  if(r.viagem.linha) c.append(field('Linha', r.viagem.linha));
   c.append(g);
   c.append(field('Status do documento', r.fiscal.status));
   c.append(field('Protocolo do evento', ev ? (ev.status||'Conforme retorno da consulta') : '—'));
   c.append(el('p','note', r.consulta.demo ? 'Dados fictícios, apenas para visualizar o layout.' : 'Somente informações efetivamente disponíveis na consulta pública. Autorização do BPe não confirma embarque.'));
+  if(r.consulta.texto && (r.fiscal.status==='STATUS NÃO IDENTIFICADO' || !r.consulta.sucesso)){
+    const b=el('button','btn','COPIAR TEXTO LIDO (PARA AJUSTE)'); b.onclick=()=>navigator.clipboard.writeText(r.consulta.texto).then(()=>{b.textContent='Copiado';}); c.append(b);
+  }
   $('#btnOfficial').hidden = !lastUrl;
   show('result');
 }
