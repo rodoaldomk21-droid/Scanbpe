@@ -37,3 +37,4 @@ input{width:100%;padding:14px;margin:8px 0;border-radius:14px;border:1px solid v
 @media (prefers-reduced-motion:no-preference){.view{animation:in .2s ease}@keyframes in{from{opacity:0}to{opacity:1}}}
 
 .msg{white-space:pre-wrap;word-break:break-word;font-size:14px}
+.event small{display:block;word-break:break-all}

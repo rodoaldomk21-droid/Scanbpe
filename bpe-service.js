@@ -1,7 +1,7 @@
 // Camada independente de consulta (ETAPA 2: SVRS).
 const BPeService = (() => {
-  // Cole aqui o endereço do seu Worker (Cloudflare), ex.: https://bpe-proxy.seunome.workers.dev
-  const PROXY_URL = 'https://bpe-proxy.rodoaldomk21.workers.dev';
+  // O endereço do Worker fica em config.js
+  const PROXY_URL = (typeof BPE_PROXY_URL !== 'undefined') ? BPE_PROXY_URL : '';
   const ALLOWED_DOMAINS = ['dfe-portal.svrs.rs.gov.br'];
   const NA = 'INFORMAÇÃO NÃO DISPONÍVEL NA CONSULTA PÚBLICA';
 
@@ -54,6 +54,29 @@ const BPeService = (() => {
     return r;
   }
 
+
+  // Eventos: linha "dd/mm/aaaa às hh:mm:ss-03:00 - Protocolo: N", com o título em maiúsculas logo acima.
+  function evFromLines(lines) {
+    const out = [];
+    lines.forEach((l, i) => {
+      const m = l.match(/^(?:Chave:\s*(\d{44})\s*)?(\d{2}\/\d{2}\/\d{4}) [àa]s (\d{2}:\d{2}:\d{2})\S*\s*-\s*Protocolo:\s*(\d+)/i);
+      if (!m) return;
+      let chave = m[1] || '', tipo = '';
+      for (let k = i - 1; k >= Math.max(0, i - 5); k--) {
+        const c = lines[k].match(/^(?:Chave:\s*)?(\d{44})$/i) || lines[k].match(/^Chave:\s*(\d{44})/i);
+        if (c) { chave = chave || c[1]; continue; }
+        if (/^Chave:?$/i.test(lines[k])) continue;
+        if (/^[A-ZÀ-Ú][A-ZÀ-Ú ]{4,}$/.test(lines[k])) { tipo = lines[k]; break; }
+      }
+      if (tipo) out.push({tipo, descricao:tipo, data:`${m[2]} às ${m[3]}`, status:`Protocolo ${m[4]}`, chave});
+    });
+    return out;
+  }
+  function pasFromFlat(flat) {
+    const m = flat.match(/Passageiro:\s*RG\s*[\w.\-]*\s+-\s+(.+?)\s+Tipo de desconto/i);
+    return m ? m[1].trim() : '';
+  }
+
   function parse(html, v, j) {
     j = j || {};
     const diag = `HTTP ${j.status} | ${j.ct} | ${j.len} bytes | ` + (html||'').replace(/\s+/g,' ').slice(0,3000);
@@ -67,8 +90,7 @@ const BPeService = (() => {
     r.documento.numero = String(parseInt(v.chave.slice(25,34),10));
     r.consulta.texto = lines.join('\n');
 
-    const ev = flat.match(/N[ÃA]O EMBARQUE\s*(\d{2}\/\d{2}\/\d{4})\s*[àa]s\s*(\d{2}:\d{2}:\d{2})\S*\s*-\s*Protocolo:\s*(\d+)/i);
-    if (ev) r.eventos.push({tipo:'NÃO EMBARQUE', descricao:'Não embarque', data:`${ev[1]} às ${ev[2]}`, status:`Protocolo ${ev[3]}`});
+    r.eventos = evFromLines(lines);
 
     const places = [...flat.matchAll(/([A-ZÀ-Ú][A-ZÀ-Ú' ]+ - [A-Z]{2}) \([A-Z]{2}\)/g)].map(m => m[1].trim());
     if (places[0]) r.viagem.origem = places[0];
@@ -77,7 +99,8 @@ const BPeService = (() => {
     if (dt) { r.viagem.data = dt[1]; r.viagem.horario = dt[2]; }
     const pol = flat.match(/Poltrona:?\s*(\w+)/i); if (pol) r.viagem.poltrona = pol[1];
     r.viagem.servico = after(lines,'Tipo'); r.viagem.linha = after(lines,'Linha');
-    const pas = lines.find(l => /^Passageiro:?\s*\S/i.test(l) && !/RG$/i.test(l)); if (pas) r.passageiro.nome = pas.replace(/^Passageiro:?\s*/i,'');
+    const pm = pasFromFlat(flat); if (pm) r.passageiro.nome = pm;
+    const pas = !r.passageiro.nome && lines.find(l => /^Passageiro:?\s*\S/i.test(l) && !/RG$/i.test(l)); if (pas) r.passageiro.nome = pas.replace(/^Passageiro:?\s*/i,'');
     if (!r.passageiro.nome) { const i=lines.findIndex(l=>/^Passageiro:?\s*RG/i.test(l)); const n=i>=0?lines.slice(i,i+4).find(l=>/^- \S/.test(l)):''; if (n) r.passageiro.nome=n.replace(/^- /,''); }
 
     const st = flat.match(/Situa[çc][ãa]o[^A-Za-z]{0,8}(AUTORIZAD|CANCELAD|DENEGAD|REJEITAD)/i);
@@ -123,5 +146,5 @@ const BPeService = (() => {
     r.consulta = {sucesso:true,mensagem:'',fonte:'EXEMPLO FICTÍCIO',demo:true,texto:''};
     return r;
   }
-  return { consultar, validateUrl, demo, NA };
+  return { consultar, validateUrl, demo, NA, _t:{evFromLines,pasFromFlat} };
 })();

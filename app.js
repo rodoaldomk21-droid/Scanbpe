@@ -43,11 +43,13 @@ function render(r){
   top.append(el('span','pill', r.consulta.demo?'Exemplo fictício':'Consulta realizada'));
   c.append(top);
 
-  const ev = r.eventos.find(e=>/N[ÃA]O EMBARQUE/i.test(e.tipo));
+  const nb = r.eventos.find(e=>/N[ÃA]O EMBARQUE/i.test(e.tipo)), ev = nb || r.eventos[0];
   const box=el('div','event '+(ev?'hit':'na'));
   box.append(el('small','','EVENTO IDENTIFICADO'));
-  if(ev){ box.append(el('b','',ev.tipo)); if(ev.data) box.append(el('small','',ev.data)); }
-  else { box.append(el('b','',BPeService.NA)); }
+  if(ev){ box.append(el('b','',ev.tipo)); if(ev.data) box.append(el('small','',ev.data)); if(ev.chave) box.append(el('small','','Chave: '+ev.chave)); }
+  else box.append(el('b','',BPeService.NA));
+  r.eventos.filter(e=>e!==ev).forEach(e=>box.append(el('small','',e.tipo+' · '+e.data)));
+  if(ev && !nb) box.append(el('small','','Não embarque: '+BPeService.NA));
   c.append(box);
 
   c.append(field('Passageiro', r.passageiro.nome));

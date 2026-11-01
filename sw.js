@@ -1,5 +1,5 @@
-const C='bpe-v2';
-const FILES=['./','index.html','style.css','app.js','bpe-service.js','manifest.json','https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js'];
+const C='bpe-v3';
+const FILES=['./','index.html','style.css','app.js','bpe-service.js','config.js','manifest.json','https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',e=>{
