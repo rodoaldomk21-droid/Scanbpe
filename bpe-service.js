@@ -1,7 +1,7 @@
 // Camada independente de consulta (ETAPA 2: SVRS).
 const BPeService = (() => {
   // Cole aqui o endereço do seu Worker (Cloudflare), ex.: https://bpe-proxy.seunome.workers.dev
-  const PROXY_URL = '';
+  const PROXY_URL = 'https://bpe-proxy.rodoaldomk21.workers.dev';
   const ALLOWED_DOMAINS = ['dfe-portal.svrs.rs.gov.br'];
   const NA = 'INFORMAÇÃO NÃO DISPONÍVEL NA CONSULTA PÚBLICA';
 
