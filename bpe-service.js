@@ -1,7 +1,7 @@
 // Camada independente de consulta (ETAPA 2: SVRS).
 const BPeService = (() => {
   // O endereço do Worker fica em config.js
-  const PROXY_URL = (typeof BPE_PROXY_URL !== 'undefined') ? BPE_PROXY_URL : 'https://bpe-proxy.rodoaldomk21.workers.dev';
+  const PROXY_URL = (typeof BPE_PROXY_URL !== 'undefined') ? BPE_PROXY_URL : '';
   const ALLOWED_DOMAINS = ['dfe-portal.svrs.rs.gov.br'];
   const NA = 'INFORMAÇÃO NÃO DISPONÍVEL NA CONSULTA PÚBLICA';
 
@@ -72,6 +72,22 @@ const BPeService = (() => {
     });
     return out;
   }
+
+  // Plano B: procura o evento no texto corrido, sem depender de quebras de linha.
+  function evFromFlat(flat) {
+    const out = [], re = /(\d{2}\/\d{2}\/\d{4}) [àa]s (\d{2}:\d{2}:\d{2})\S*\s*-\s*Protocolo:\s*(\d+)/gi;
+    let m;
+    while ((m = re.exec(flat))) {
+      const before = flat.slice(Math.max(0, m.index - 220), m.index);
+      const ch = before.match(/(\d{44})\s*$/);
+      const clean = before.replace(/Chave:?\s*\d{44}\s*$/i, '').replace(/\d{44}\s*$/, '');
+      const known = [...clean.matchAll(/N[ÃA]O EMBARQUE|BILHETE SUBSTITU[ÍI]DO(?: POR)?|CANCELAMENTO(?: [A-ZÀ-Ú]{3,})*|ALTERA[ÇC][ÃA]O DE POLTRONA|EXCESSO DE BAGAGEM/gi)];
+      let tipo = known.length ? known[known.length-1][0] : '';
+      if (!tipo) { const g = clean.match(/((?:[A-ZÀ-Ú]{3,}\s+)*[A-ZÀ-Ú]{3,})\s*$/); tipo = g ? g[1] : ''; }
+      if (tipo) out.push({tipo:tipo.toUpperCase().trim(), descricao:tipo, data:`${m[1]} às ${m[2]}`, status:`Protocolo ${m[3]}`, chave: ch ? ch[1] : ''});
+    }
+    return out;
+  }
   function pasFromFlat(flat) {
     const m = flat.match(/Passageiro:\s*RG\s*[\w.\-]*\s+-\s+(.+?)\s+Tipo de desconto/i);
     return m ? m[1].trim() : '';
@@ -91,6 +107,7 @@ const BPeService = (() => {
     r.consulta.texto = lines.join('\n');
 
     r.eventos = evFromLines(lines);
+    if (!r.eventos.length) r.eventos = evFromFlat(flat);
 
     const places = [...flat.matchAll(/([A-ZÀ-Ú][A-ZÀ-Ú' ]+ - [A-Z]{2}) \([A-Z]{2}\)/g)].map(m => m[1].trim());
     if (places[0]) r.viagem.origem = places[0];
@@ -146,5 +163,5 @@ const BPeService = (() => {
     r.consulta = {sucesso:true,mensagem:'',fonte:'EXEMPLO FICTÍCIO',demo:true,texto:''};
     return r;
   }
-  return { consultar, validateUrl, demo, NA, _t:{evFromLines,pasFromFlat} };
+  return { consultar, validateUrl, demo, NA, _t:{evFromLines,evFromFlat,pasFromFlat} };
 })();

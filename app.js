@@ -61,7 +61,7 @@ function render(r){
   c.append(field('Status do documento', r.fiscal.status));
   c.append(field('Protocolo do evento', ev ? (ev.status||'Conforme retorno da consulta') : '—'));
   c.append(el('p','note', r.consulta.demo ? 'Dados fictícios, apenas para visualizar o layout.' : 'Somente informações efetivamente disponíveis na consulta pública. Autorização do BPe não confirma embarque.'));
-  if(r.consulta.texto && (r.fiscal.status==='STATUS NÃO IDENTIFICADO' || !r.consulta.sucesso)){
+  if(r.consulta.texto && (r.fiscal.status==='STATUS NÃO IDENTIFICADO' || !r.consulta.sucesso || !r.eventos.length)){
     const b=el('button','btn','COPIAR TEXTO LIDO (PARA AJUSTE)'); b.onclick=()=>navigator.clipboard.writeText(r.consulta.texto).then(()=>{b.textContent='Copiado';}); c.append(b);
   }
   $('#btnOfficial').hidden = !lastUrl;
