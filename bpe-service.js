@@ -121,14 +121,18 @@ const BPeService = (() => {
     if (!r.passageiro.nome) { const i=lines.findIndex(l=>/^Passageiro:?\s*RG/i.test(l)); const n=i>=0?lines.slice(i,i+4).find(l=>/^- \S/.test(l)):''; if (n) r.passageiro.nome=n.replace(/^- /,''); }
 
     const st = flat.match(/Situa[çc][ãa]o[^A-Za-z]{0,8}(AUTORIZAD|CANCELAD|DENEGAD|REJEITAD)/i);
-    if (st) {
+    const cm = html.match(/cancelado pelo emitente|bilhete cancelado|BPe cancelado|uso denegado|bilhete denegado/i);
+    if (cm) {
+      const den = /denegad/i.test(cm[0]);
+      r.fiscal.status = den ? 'DENEGADO' : 'CANCELADO'; r.fiscal.autorizado = false; r.fiscal.cancelado = !den; r.fiscal.motivo = cm[0].charAt(0).toUpperCase() + cm[0].slice(1);
+    } else if (st) {
       const k = st[1].toUpperCase(); r.fiscal.status = k + 'O';
       r.fiscal.autorizado = k==='AUTORIZAD'; r.fiscal.cancelado = k==='CANCELAD';
     } else if (/Protocolo de Autoriza[çc][ãa]o:?\s*\d+/i.test(flat) && !r.eventos.some(e=>/CANCEL/i.test(e.tipo)) && !/cancelad/i.test(flat)) {
-      r.fiscal.status='AUTORIZADO'; r.fiscal.autorizado=true; r.fiscal.cancelado=false;
+      r.fiscal.status='AUTORIZADO'; r.fiscal.autorizado=true; r.fiscal.cancelado=false; r.fiscal.inferido=true;
     } else r.fiscal.status = 'STATUS NÃO IDENTIFICADO';
 
-    r.fiscal.protocolo = (flat.match(/Protocolo de Autoriza[çc][ãa]o:?\s*(\d+)/i)||[])[1] || ''; r.consulta.diag = diag; r.consulta.sucesso = !!(r.viagem.origem || r.eventos.length);
+    r.consulta.pistas = [...(html||'').matchAll(/.{0,100}(?:cancel|inv[aá]lid|denegad|carimbo|stamp)[^<]{0,100}/gi)].slice(0,12).map(m=>m[0].replace(/\s+/g,' ')).join('\n---\n'); r.fiscal.protocolo = (flat.match(/Protocolo de Autoriza[çc][ãa]o:?\s*(\d+)/i)||[])[1] || ''; r.consulta.diag = diag; r.consulta.sucesso = !!(r.viagem.origem || r.eventos.length);
     if (!r.consulta.sucesso) r.consulta.mensagem = 'Dados não encontrados na página consultada.';
     return r;
   }

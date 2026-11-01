@@ -49,7 +49,7 @@ function render(r){
   box.append(el('small','', !ev && (okSt||badSt) ? 'STATUS DO BILHETE' : 'EVENTO IDENTIFICADO'));
   if(ev){ box.append(el('b','',ev.tipo)); if(ev.data) box.append(el('small','',ev.data)); if(ev.chave) box.append(el('small','','Chave: '+ev.chave)); }
   else if(okSt){ box.append(el('b','','EMITIDO'), el('small','','Nenhum evento registrado na consulta pública')); }
-  else if(badSt){ box.append(el('b','',r.fiscal.status)); }
+  else if(badSt){ box.append(el('b','',r.fiscal.status)); if(r.fiscal.motivo) box.append(el('small','',r.fiscal.motivo)); }
   else box.append(el('b','',BPeService.NA));
   r.eventos.filter(e=>e!==ev).forEach(e=>box.append(el('small','',e.tipo+' · '+e.data)));
   if(ev && !nb) box.append(el('small','','Não embarque: '+BPeService.NA));
@@ -61,9 +61,10 @@ function render(r){
   g.append(field('Data da viagem',r.viagem.data), field('Horário',r.viagem.horario), field('Poltrona',r.viagem.poltrona), field('Tipo de serviço',r.viagem.servico));
   if(r.viagem.linha) c.append(field('Linha', r.viagem.linha));
   c.append(g);
-  const fs=field('Status do documento', r.fiscal.status); if(okSt) fs.classList.add('st-ok'); c.append(fs);
+  const fs=field('Status do documento', r.fiscal.status); if(okSt) fs.classList.add('st-ok'); if(badSt) fs.classList.add('st-bad'); c.append(fs);
   c.append(ev ? field('Protocolo do evento', ev.status||'Conforme retorno da consulta') : r.fiscal.protocolo ? field('Protocolo de autorização', r.fiscal.protocolo) : field('Protocolo do evento','—'));
-  c.append(el('p','note', r.consulta.demo ? 'Dados fictícios, apenas para visualizar o layout.' : 'Somente informações efetivamente disponíveis na consulta pública. Autorização do BPe não confirma embarque.'));
+  c.append(el('p','note', r.consulta.demo ? 'Dados fictícios, apenas para visualizar o layout.' : 'Somente informações efetivamente disponíveis na consulta pública. Autorização do BPe não confirma embarque.'+(r.fiscal.inferido?' Status deduzido do protocolo de autorização: confira em "Abrir consulta oficial" se houver aviso de cancelamento.':'')));
+  if(!r.consulta.demo && r.consulta.pistas!==undefined){ const d=el('button','link','Copiar diagnóstico do status'); d.onclick=()=>navigator.clipboard.writeText(r.consulta.pistas||'(sem trechos com cancel/inválido no HTML)').then(()=>{d.textContent='Copiado';}); c.append(d); }
   if(r.consulta.texto && (r.fiscal.status==='STATUS NÃO IDENTIFICADO' || !r.consulta.sucesso || !r.eventos.length)){
     const b=el('button','btn','COPIAR TEXTO LIDO (PARA AJUSTE)'); b.onclick=()=>navigator.clipboard.writeText(r.consulta.texto).then(()=>{b.textContent='Copiado';}); c.append(b);
   }

@@ -41,3 +41,4 @@ input{width:100%;padding:14px;margin:8px 0;border-radius:14px;border:1px solid v
 .event.ok{background:#06140b;border-color:#14391f}
 .event.ok b{color:var(--grn)}
 .f.st-ok strong{color:var(--grn)}
+.f.st-bad strong{color:#ff5a4d}
