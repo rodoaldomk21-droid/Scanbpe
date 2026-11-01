@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BPe">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+<title>CONSULTA BPe</title>
+</head>
+<body>
+<main class="app">
+  <header class="top"><h1>BP-e Scanner</h1><span id="net" class="pill ok">Online</span></header>
+
+  <section id="home" class="view">
+    <p class="sub">Consulta rápida de Bilhete de Passagem Eletrônico</p>
+    <div class="card center">
+      <svg class="qr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><rect x="8" y="8" width="3" height="3"/><rect x="13" y="8" width="3" height="3"/><rect x="8" y="13" width="3" height="3"/><path d="M13 13h3v3"/></svg>
+      <button id="btnScan" class="btn primary">LER QR CODE</button>
+      <button id="btnPaste" class="btn">COLAR LINK DE CONSULTA</button>
+      <button id="btnHist" class="btn">HISTÓRICO DE CONSULTAS</button>
+      <button id="btnDemo" class="link">Ver exemplo de layout (dados fictícios)</button>
+    </div>
+    <p id="msg" class="msg" hidden></p>
+  </section>
+
+  <section id="scan" class="view" hidden>
+    <div class="card"><video id="video" playsinline muted></video>
+      <p class="hint">Aponte a câmera para o QR Code do bilhete.</p>
+      <button id="btnStop" class="btn">CANCELAR</button></div>
+  </section>
+
+  <section id="paste" class="view" hidden>
+    <div class="card"><label for="url">Link de consulta</label>
+      <input id="url" type="url" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="https://...">
+      <button id="btnGo" class="btn primary">CONSULTAR</button>
+      <button class="btn back">VOLTAR</button></div>
+  </section>
+
+  <section id="hist" class="view" hidden>
+    <div id="histList"></div>
+    <button id="btnClear" class="btn">LIMPAR HISTÓRICO</button>
+    <button class="btn back">VOLTAR</button>
+  </section>
+
+  <section id="result" class="view" hidden>
+    <div class="card" id="resCard"></div>
+    <button id="btnOfficial" class="btn">ABRIR CONSULTA OFICIAL</button>
+    <button class="btn primary back">NOVA CONSULTA</button>
+  </section>
+
+  <details class="install"><summary>Como instalar no iPhone</summary>
+    <p>No Safari, toque em Compartilhar e depois em “Adicionar à Tela de Início”.</p></details>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script src="bpe-service.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
